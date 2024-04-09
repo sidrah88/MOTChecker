@@ -1,0 +1,56 @@
+﻿@using System.Text.Json;
+
+@page "/"
+@inject HttpClient httpClient
+
+<h3>Vehicle MOT Checker</h3>
+
+<form @onsubmit="MOTCheck">
+    <label for="registrationNumber">Enter Registration Number:</label>
+    <input type="text" id="registrationNumber" @bind="registrationNumber" required />
+    <button type="submit">Check MOT</button>
+</form>
+
+@if (vehicleInformation != null)
+{
+    <div>
+        <h4>Vehicle Information</h4>
+        <p><strong>Make:</strong> @vehicleInformation.Make</p>
+        <p><strong>Model:</strong> @vehicleInformation.Model</p>
+        <p><strong>Colour:</strong> @vehicleInformation.Colour</p>
+        <p><strong>MOT Expiry Date:</strong> @vehicleInformation.ExpiryDateMOT.ToShortDateString()</p>
+        <p><strong>Mileage at Last MOT:</strong> @vehicleInformation.MOTlastMileage</p>
+    </div>
+}
+
+@code {
+    private string registrationNumber;
+    private VehicleInformation vehicleInformation;
+
+    private async Task MOTCheck()
+    {
+        var APIEndpoint = "https://beta.check-mot.service.gov.uk/trade/vehicles/mot-tests";
+        var apiKey = "fZi8YcjrZN1cGkQeZP7Uaa4rTxua8HovaswPuIno";
+
+        var req = new HttpRequestMessage(HttpMethod.Get, $"{APIEndpoint}?registration={registrationNumber}");
+        req.Headers.Add("x-api-key", apiKey);
+
+        var res = await httpClient.SendAsync(req);
+
+        if (res.IsSuccessStatusCode)
+        {
+            var contentStream = await res.Content.ReadAsStreamAsync();
+            var vehicleInformationList = await JsonSerializer.DeserializeAsync<List<VehicleInformation>>(contentStream);
+
+            if (vehicleInformationList != null)
+            {
+                //this gets the information of the first vehicle
+                vehicleInformation = vehicleInformationList[0];
+            }
+        }
+    }
+}
+
+
+
+
